@@ -8,7 +8,7 @@
 class Sphere : public QWidget {
     Q_OBJECT
 public:
-    explicit Sphere(QWidget* parent = nullptr);
+    explicit Sphere(const QString& texturePath, int width, int height, QWidget* parent = nullptr);
     ~Sphere();
 
 public slots:

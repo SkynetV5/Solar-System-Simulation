@@ -11,6 +11,8 @@ public:
     explicit Window(QWidget *parent = nullptr);
     ~Window();
 
+protected:
+    void paintEvent(QPaintEvent* event) override;
 
 private:
     Sphere* earthWidget;
