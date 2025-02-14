@@ -16,6 +16,11 @@ void Sphere::setRotation(int angle) {
     update();
 }
 
+void Sphere::setViewAngle(float angle) {
+    viewAngle = angle;
+    update();
+}
+
 void Sphere::paintEvent(QPaintEvent*) {
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing);
@@ -36,6 +41,7 @@ void Sphere::paintEvent(QPaintEvent*) {
 
     QMatrix4x4 view;
     view.translate(0, 0, -400);
+    view.rotate(viewAngle, 1, 0, 0);
 
     QMatrix4x4 model;
     model.rotate(rotationAngle, 0, 1, 0);

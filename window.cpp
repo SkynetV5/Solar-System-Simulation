@@ -4,68 +4,212 @@
 #include <QSlider>
 #include <QHBoxLayout>
 #include <QPainter>
+#include <QLabel>
+#include <QDebug>
+
+
 
 Window::Window(QWidget* parent) : QWidget(parent) {
     setWindowTitle("Układ Słoneczny");
+
+    // Tworzymy główny layout
     QVBoxLayout* mainLayout = new QVBoxLayout(this);
 
-    // Tworzymy poziomy układ planet
-    QHBoxLayout* planetsLayout = new QHBoxLayout();
+
+    // Kontener na układ planet
+    QWidget* solarSystemContainer = new QWidget(this);
+    solarSystemContainer->setFixedSize(1500, 600); // Ustawiamy stały rozmiar kontenera
+    mainLayout->addWidget(solarSystemContainer);
+
+    // Pozycja środka (Słońca)
+    const int centerX = solarSystemContainer->width() / 2 + 10;
+    const int centerY = solarSystemContainer->height() / 2 + 10;
 
     // Tworzenie Słońca
-    Sphere* sunWidget = new Sphere("C:/Users/SKYNET/Desktop/SKYNET/Solar-System-Simulation/Assets/sun.jpg", 250, 250, this);
-    planetsLayout->addWidget(sunWidget);
+    Sphere* sunWidget = new Sphere("C:/Users/SKYNET/Desktop/SKYNET/Solar-System-Simulation/Assets/sun.jpg", 180, 180, solarSystemContainer);
+    sunWidget->move(centerX -90, centerY -65); // Centrujemy Słońce
 
-    // Tworzenie planet
+    // Definicja planet
     struct PlanetData {
         QString texturePath;
         int size;
+        int spacing;
     };
 
     std::vector<PlanetData> planets = {
-        {"C:/Users/SKYNET/Desktop/SKYNET/Solar-System-Simulation/Assets/mercury.jpg", 40},
-        {"C:/Users/SKYNET/Desktop/SKYNET/Solar-System-Simulation/Assets/wenus.jpg", 60},
-        {"C:/Users/SKYNET/Desktop/SKYNET/Solar-System-Simulation/Assets/earth01.jpg", 75},
-        {"C:/Users/SKYNET/Desktop/SKYNET/Solar-System-Simulation/Assets/mars.jpg", 65},
-        {"C:/Users/SKYNET/Desktop/SKYNET/Solar-System-Simulation/Assets/jupiter.jpg", 150},
-        {"C:/Users/SKYNET/Desktop/SKYNET/Solar-System-Simulation/Assets/saturn.jpg", 140},
-        {"C:/Users/SKYNET/Desktop/SKYNET/Solar-System-Simulation/Assets/uran.jpg", 100},
-        {"C:/Users/SKYNET/Desktop/SKYNET/Solar-System-Simulation/Assets/neptune.jpg", 90}
+        {"C:/Users/SKYNET/Desktop/SKYNET/Solar-System-Simulation/Assets/mercury.jpg", 40, 40},
+        {"C:/Users/SKYNET/Desktop/SKYNET/Solar-System-Simulation/Assets/wenus.jpg", 60, 55},
+        {"C:/Users/SKYNET/Desktop/SKYNET/Solar-System-Simulation/Assets/earth01.jpg", 75, 50},
+        {"C:/Users/SKYNET/Desktop/SKYNET/Solar-System-Simulation/Assets/mars.jpg", 65, 70},
+        {"C:/Users/SKYNET/Desktop/SKYNET/Solar-System-Simulation/Assets/jupiter.jpg", 100, 80},
+        {"C:/Users/SKYNET/Desktop/SKYNET/Solar-System-Simulation/Assets/saturn.jpg", 95, 70},
+        {"C:/Users/SKYNET/Desktop/SKYNET/Solar-System-Simulation/Assets/uran.jpg", 80, 70},
+        {"C:/Users/SKYNET/Desktop/SKYNET/Solar-System-Simulation/Assets/neptune.jpg", 80, 70}
     };
 
-    std::vector<Sphere*> planetWidgets;
+    // Pozycja startowa dla pierwszej planety (na prawo od Słońca)
+    int currentX = centerX + 70; // Odległość pierwszej planety od Słońca
+
+    orbitalSpeeds = {
+        2.0,    // Mercury - najszybszy
+        1.5,    // Venus
+        1.0,    // Earth
+        0.8,    // Mars
+        0.4,    // Jupiter
+        0.3,    // Saturn
+        0.2,    // Uranus
+        0.1     // Neptune - najwolniejszy
+    };
+
+    rotationalSpeeds = {
+        0.41, //Mercury
+        -0.09, // Wenus
+        1.0, //Earth
+        0.97, //Mars
+        2.4, //Jupiter
+        2.24, //Saturn
+        -1.37, //Uran
+        1.49 //Neptune
+    };
+
+    orbitalDistances = {
+        140,  // Mercury
+        180,  // Venus
+        230,  // Earth
+        280,  // Mars
+        350,  // Jupiter
+        430,  // Saturn
+        500,  // Uranus
+        570   // Neptune
+    };
+
+    orbitalAngles.resize(planets.size(), 0.0);
+
+
+
+    // Tworzenie i pozycjonowanie planet
     for (const auto& planet : planets) {
-        Sphere* planetWidget = new Sphere(planet.texturePath, planet.size, planet.size, this);
-        planetsLayout->addWidget(planetWidget);
+        Sphere* planetWidget = new Sphere(planet.texturePath, planet.size, planet.size, solarSystemContainer);
+
+        float viewAngle = -10.0f * M_PI / 180.0f;  // 30 stopni w radianach
+        int baseY = centerY - (planet.size / 2);
+        int depthOffset = static_cast<int>(currentX * sin(viewAngle) * 0.2f);
+        int planetY = baseY - depthOffset;
+
+        // Ustawianie pozycji planety
+        planetWidget->move(currentX, planetY);
+
+        // Przesuwamy pozycję X dla następnej planety
+        currentX += planet.spacing;
+
         planetWidgets.push_back(planetWidget);
     }
 
-    mainLayout->addLayout(planetsLayout);
+    // Create animation timer
+    animationTimer = new QTimer(this);
+    animationTimer->setInterval(16); // ~60 FPS
+    connect(animationTimer, &QTimer::timeout, this, &Window::updatePlanetPositions);
+    animationTimer->start();
 
-    // Slider do obracania planet
+
+    QHBoxLayout* controlLayout = new QHBoxLayout();
+
+    // Rotation control
+    QVBoxLayout* rotationControl = new QVBoxLayout();
+    QLabel* rotationLabel = new QLabel("Rotation:", this);
     QSlider* rotationSlider = new QSlider(Qt::Horizontal, this);
     rotationSlider->setRange(0, 360);
     rotationSlider->setValue(0);
-    mainLayout->addWidget(rotationSlider);
+    rotationControl->addWidget(rotationLabel);
+    rotationControl->addWidget(rotationSlider);
 
+    // View angle control
+    QVBoxLayout* viewControl = new QVBoxLayout();
+    QLabel* viewLabel = new QLabel("View Angle:", this);
+    QSlider *viewAngleSlider = new QSlider(Qt::Horizontal, this);
+    viewAngleSlider->setRange(-75, 75);  // Limit to 75 degrees to prevent extreme angles
+    viewAngleSlider->setValue(0);  // Start at 30 degrees
+    viewControl->addWidget(viewLabel);
+    viewControl->addWidget(viewAngleSlider);
+
+    controlLayout->addLayout(rotationControl);
+    controlLayout->addLayout(viewControl);
+    mainLayout->addLayout(controlLayout);
+
+    // Podłączanie slidera do wszystkich planet
     for (Sphere* planet : planetWidgets) {
         connect(rotationSlider, &QSlider::valueChanged, planet, &Sphere::setRotation);
+        connect(viewAngleSlider, &QSlider::valueChanged, planet, &Sphere::setViewAngle);
+    }
+    connect(rotationSlider, &QSlider::valueChanged, sunWidget, &Sphere::setRotation);
+     connect(viewAngleSlider, &QSlider::valueChanged, sunWidget, &Sphere::setViewAngle);
+
+    resize(1500, 600);
+}
+
+
+void Window::updatePlanetPositions() {
+    qDebug() << "Timer tick!";  // Sprawdzenie czy timer w ogóle działa
+
+    const int centerX = width() / 2;
+    const int centerY = height() / 2;
+
+    qDebug() << "Center coordinates:" << centerX << centerY;  // Sprawdzenie współrzędnych centrum
+    qDebug() << "Number of planets:" << planetWidgets.size();
+
+    for (size_t i = 0; i < planetWidgets.size(); ++i) {
+        qDebug() << "Planet" << i;  // Sprawdzenie której planety pozycja jest aktualizowana
+
+        orbitalAngles[i] +=  2.0f * orbitalSpeeds[i] * (M_PI / 180.0) ;
+        if (orbitalAngles[i] >= 2.0 * M_PI) {
+            orbitalAngles[i] -= 2.0 * M_PI;
+        }
+
+        float viewAngle = 5.0f * M_PI / 180.0f;
+        int orbitX = centerX + orbitalDistances[i] * cos(orbitalAngles[i]);
+        int orbitY = centerY + (orbitalDistances[i] * sin(orbitalAngles[i]) * cos(viewAngle));
+
+        qDebug() << "Planet" << i << "Position:" << orbitX << orbitY;
+        qDebug() << "Angle:" << orbitalAngles[i] << "Speed:" << orbitalSpeeds[i];
+
+        planetWidgets[i]->move(
+            orbitX - planetWidgets[i]->width() / 2,
+            orbitY - planetWidgets[i]->height() / 2
+            );
     }
 
-    resize(1200, 600);
+    update();
+}
+
+void Window::drawOrbits(QPainter& painter) {
+    const int centerX = width() / 2 +10;
+    const int centerY = height() / 2 +10;
+
+    painter.setPen(QPen(QColor(100, 100, 100, 100), 1, Qt::DashLine));
+
+    float viewAngle = 5.0f * M_PI / 180.0f;
+
+    for (int distance : orbitalDistances) {
+        // Draw elliptical orbit
+        QRectF orbitRect(
+            centerX - distance,
+            centerY - distance * cos(viewAngle),
+            distance * 2,
+            distance * 2 * cos(viewAngle)
+            );
+        painter.drawEllipse(orbitRect);
+    }
 }
 
 void Window::paintEvent(QPaintEvent* event) {
-    // Tworzymy obiekt QPixmap, aby załadować teksturę
-    QPixmap background("C:/Users/SKYNET/Desktop/SKYNET/Solar-System-Simulation/Assets/stars.jpg");
-
-    // Tworzymy obiekt QPainter do rysowania
     QPainter painter(this);
-    painter.drawPixmap(0, 0, width(), height(), background);  // Rysowanie tła
+    QPixmap background("C:/Users/SKYNET/Desktop/SKYNET/Solar-System-Simulation/Assets/stars.jpg");
+    painter.drawPixmap(0, 0, width(), height(), background);
 
-    QWidget::paintEvent(event);  // Wywołanie domyślnego paintEvent
+     drawOrbits(painter);
+    QWidget::paintEvent(event);
 }
 
 Window::~Window() {
+     delete animationTimer;
 }
-

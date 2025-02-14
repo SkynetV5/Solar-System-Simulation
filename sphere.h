@@ -13,12 +13,14 @@ public:
 
 public slots:
     void setRotation(int angle);
+    void setViewAngle(float angle);
 
 protected:
     void paintEvent(QPaintEvent* event) override;
 
 private:
     int rotationAngle;
+    float viewAngle;
     QImage texture;
 };
 
