@@ -18,7 +18,7 @@ Window::Window(QWidget* parent) : QWidget(parent) {
 
     // Kontener na układ planet
     QWidget* solarSystemContainer = new QWidget(this);
-    solarSystemContainer->setFixedSize(1500, 600); // Ustawiamy stały rozmiar kontenera
+    solarSystemContainer->setFixedSize(1500, 700); // Ustawiamy stały rozmiar kontenera
     mainLayout->addWidget(solarSystemContainer);
 
     // Pozycja środka (Słońca)
@@ -26,7 +26,7 @@ Window::Window(QWidget* parent) : QWidget(parent) {
     const int centerY = solarSystemContainer->height() / 2 + 10;
 
     // Tworzenie Słońca
-    Sphere* sunWidget = new Sphere("C:/Users/SKYNET/Desktop/SKYNET/Solar-System-Simulation/Assets/sun.jpg", 180, 180, solarSystemContainer);
+    sunWidget = new Sphere("C:/Users/SKYNET/Desktop/SKYNET/Solar-System-Simulation/Assets/sun.jpg", 180, 180, solarSystemContainer);
     sunWidget->move(centerX -90, centerY -65); // Centrujemy Słońce
 
     // Definicja planet
@@ -61,16 +61,16 @@ Window::Window(QWidget* parent) : QWidget(parent) {
         0.1     // Neptune - najwolniejszy
     };
 
-    rotationalSpeeds = {
-        0.41, //Mercury
-        -0.09, // Wenus
-        1.0, //Earth
-        0.97, //Mars
-        2.4, //Jupiter
-        2.24, //Saturn
-        -1.37, //Uran
-        1.49 //Neptune
-    };
+    rotationSpeeds = {
+        0.3,    // Mercury
+        -0.2,   // Venus (ujemna wartość dla ruchu wstecznego)
+        15.0,   // Earth
+        14.6,   // Mars
+        36.4,   // Jupiter
+        33.6,   // Saturn
+        -20.9,  // Uranus (ujemna wartość dla ruchu wstecznego)
+        22.4    // Neptune
+    };;
 
     orbitalDistances = {
         140,  // Mercury
@@ -112,70 +112,69 @@ Window::Window(QWidget* parent) : QWidget(parent) {
     animationTimer->start();
 
 
-    QHBoxLayout* controlLayout = new QHBoxLayout();
+    // QHBoxLayout* controlLayout = new QHBoxLayout();
 
-    // Rotation control
-    QVBoxLayout* rotationControl = new QVBoxLayout();
-    QLabel* rotationLabel = new QLabel("Rotation:", this);
-    QSlider* rotationSlider = new QSlider(Qt::Horizontal, this);
-    rotationSlider->setRange(0, 360);
-    rotationSlider->setValue(0);
-    rotationControl->addWidget(rotationLabel);
-    rotationControl->addWidget(rotationSlider);
+    // // Rotation control
+    // QVBoxLayout* rotationControl = new QVBoxLayout();
+    // QLabel* rotationLabel = new QLabel("Rotation:", this);
+    // QSlider* rotationSlider = new QSlider(Qt::Horizontal, this);
+    // rotationSlider->setRange(0, 360);
+    // rotationSlider->setValue(0);
+    // rotationControl->addWidget(rotationLabel);
+    // rotationControl->addWidget(rotationSlider);
 
-    // View angle control
-    QVBoxLayout* viewControl = new QVBoxLayout();
-    QLabel* viewLabel = new QLabel("View Angle:", this);
-    QSlider *viewAngleSlider = new QSlider(Qt::Horizontal, this);
-    viewAngleSlider->setRange(-75, 75);  // Limit to 75 degrees to prevent extreme angles
-    viewAngleSlider->setValue(0);  // Start at 30 degrees
-    viewControl->addWidget(viewLabel);
-    viewControl->addWidget(viewAngleSlider);
+    // // View angle control
+    // QVBoxLayout* viewControl = new QVBoxLayout();
+    // QLabel* viewLabel = new QLabel("View Angle:", this);
+    // QSlider *viewAngleSlider = new QSlider(Qt::Horizontal, this);
+    // viewAngleSlider->setRange(-75, 75);  // Limit to 75 degrees to prevent extreme angles
+    // viewAngleSlider->setValue(0);  // Start at 30 degrees
+    // viewControl->addWidget(viewLabel);
+    // viewControl->addWidget(viewAngleSlider);
 
-    controlLayout->addLayout(rotationControl);
-    controlLayout->addLayout(viewControl);
-    mainLayout->addLayout(controlLayout);
+    // controlLayout->addLayout(rotationControl);
+    // controlLayout->addLayout(viewControl);
+    // mainLayout->addLayout(controlLayout);
 
-    // Podłączanie slidera do wszystkich planet
-    for (Sphere* planet : planetWidgets) {
-        connect(rotationSlider, &QSlider::valueChanged, planet, &Sphere::setRotation);
-        connect(viewAngleSlider, &QSlider::valueChanged, planet, &Sphere::setViewAngle);
-    }
-    connect(rotationSlider, &QSlider::valueChanged, sunWidget, &Sphere::setRotation);
-     connect(viewAngleSlider, &QSlider::valueChanged, sunWidget, &Sphere::setViewAngle);
+    // // Podłączanie slidera do wszystkich planet
+    // for (Sphere* planet : planetWidgets) {
+    //     connect(rotationSlider, &QSlider::valueChanged, planet, &Sphere::setRotation);
+    //     connect(viewAngleSlider, &QSlider::valueChanged, planet, &Sphere::setViewAngle);
+    // }
+    // connect(rotationSlider, &QSlider::valueChanged, sunWidget, &Sphere::setRotation);
+    //  connect(viewAngleSlider, &QSlider::valueChanged, sunWidget, &Sphere::setViewAngle);
 
-    resize(1500, 600);
+    resize(1500, 800);
 }
 
 
 void Window::updatePlanetPositions() {
-    qDebug() << "Timer tick!";  // Sprawdzenie czy timer w ogóle działa
 
     const int centerX = width() / 2;
     const int centerY = height() / 2;
 
-    qDebug() << "Center coordinates:" << centerX << centerY;  // Sprawdzenie współrzędnych centrum
-    qDebug() << "Number of planets:" << planetWidgets.size();
+    sunWidget->move(centerX -90, centerY -90);
+
+    sunWidget->setRotation(sunWidget->rotation() + sunRotationSpeed);
 
     for (size_t i = 0; i < planetWidgets.size(); ++i) {
-        qDebug() << "Planet" << i;  // Sprawdzenie której planety pozycja jest aktualizowana
 
         orbitalAngles[i] +=  2.0f * orbitalSpeeds[i] * (M_PI / 180.0) ;
         if (orbitalAngles[i] >= 2.0 * M_PI) {
             orbitalAngles[i] -= 2.0 * M_PI;
         }
 
+        planetWidgets[i]->setRotation(planetWidgets[i]->rotation() + rotationSpeeds[i]);
+
         float viewAngle = 5.0f * M_PI / 180.0f;
         int orbitX = centerX + orbitalDistances[i] * cos(orbitalAngles[i]);
         int orbitY = centerY + (orbitalDistances[i] * sin(orbitalAngles[i]) * cos(viewAngle));
-
-        qDebug() << "Planet" << i << "Position:" << orbitX << orbitY;
-        qDebug() << "Angle:" << orbitalAngles[i] << "Speed:" << orbitalSpeeds[i];
 
         planetWidgets[i]->move(
             orbitX - planetWidgets[i]->width() / 2,
             orbitY - planetWidgets[i]->height() / 2
             );
+
     }
 
     update();
@@ -183,7 +182,7 @@ void Window::updatePlanetPositions() {
 
 void Window::drawOrbits(QPainter& painter) {
     const int centerX = width() / 2 +10;
-    const int centerY = height() / 2 +10;
+    const int centerY = height() / 2 +50;
 
     painter.setPen(QPen(QColor(100, 100, 100, 100), 1, Qt::DashLine));
 

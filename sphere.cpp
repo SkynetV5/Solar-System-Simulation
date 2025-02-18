@@ -5,14 +5,21 @@
 #include <QPainterPath>
 
 Sphere::Sphere(const QString& texturePath, int width, int height, QWidget* parent)
-    : QWidget(parent), rotationAngle(0), texture(texturePath) {
+    : QWidget(parent), rotationAngle(0.0f), texture(texturePath) {
     setMinimumSize(width, height);
     setMouseTracking(true);
 
 }
 
-void Sphere::setRotation(int angle) {
+
+void Sphere::setRotation(float angle) {
     rotationAngle = angle;
+    while (rotationAngle >= 360.0f) {
+        rotationAngle -= 360.0f;
+    }
+    while (rotationAngle < 0.0f) {
+        rotationAngle += 360.0f;
+    }
     update();
 }
 
@@ -20,6 +27,8 @@ void Sphere::setViewAngle(float angle) {
     viewAngle = angle;
     update();
 }
+
+
 
 void Sphere::paintEvent(QPaintEvent*) {
     QPainter painter(this);

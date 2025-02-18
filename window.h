@@ -26,11 +26,12 @@ private:
     std::vector<Sphere*> planetWidgets;
     std::vector<double> orbitalPeriods;
     std::vector<double> orbitalSpeeds;
-    std::vector<double> rotationalSpeeds;
+    std::vector<double> rotationSpeeds;
     std::vector<double> orbitalAngles;
     std::vector<int> orbitalDistances;
-    double time;
     QWidget* solarSystemContainer;
+    Sphere* sunWidget;
+    double sunRotationSpeed = 13.3;
     void updatePlanetPositions();
     void drawOrbits(QPainter& painter);
 

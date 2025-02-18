@@ -3,6 +3,7 @@
 
 #include <QMatrix4x4>
 #include <QWidget>
+#include <QTimer>
 
 
 class Sphere : public QWidget {
@@ -12,14 +13,15 @@ public:
     ~Sphere();
 
 public slots:
-    void setRotation(int angle);
+    void setRotation(float angle);
     void setViewAngle(float angle);
+    float rotation() const { return rotationAngle; }
 
 protected:
     void paintEvent(QPaintEvent* event) override;
 
 private:
-    int rotationAngle;
+    float rotationAngle;
     float viewAngle;
     QImage texture;
 };
